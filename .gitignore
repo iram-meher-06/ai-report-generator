@@ -1,0 +1,64 @@
+# Environment specific files & Secrets (NEVER COMMIT THESE)
+.env
+backend/firebase-service-account-key.json
+venv/
+backend/venv/  # Include if venv is inside backend
+env/
+.venv/
+
+# Temporary Audio Files
+*_16k_mono_temp.wav
+backend/temp_audio_uploads/
+
+# Python Bytecode and Cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / Build Artifacts
+build/
+dist/
+*.egg-info/
+*.egg
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.manifest
+*.spec
+
+# PyInstaller
+*.pyz
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# IDE / Editor specific
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Pyannote / Model caches (Optional - can make cloning faster but repo bigger if committed)
+# Consider adding specific model cache paths if they appear outside venv/ignored dirs
