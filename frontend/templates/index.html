@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Convo Report - Welcome</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="container index-container"> <!-- Added specific class for index page styling -->
+        <h1>Welcome to Convo Report</h1>
+        <p class="tagline">Your AI-powered solution for generating insightful reports from conversations.</p>
+        <a href="{{ url_for('serve_upload_page') }}" class="btn">Get Started</a>
+    </div>
+</body>
+</html>

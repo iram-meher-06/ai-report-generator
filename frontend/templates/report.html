@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generated Report - Convo Report</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <!-- Any additional report-specific styles can go in styles.css or here -->
+</head>
+<body class="report-view">
+    <div class="container report-page">
+        <h1>Report Results</h1>
+        <div id="report-status-message" style="text-align: center; margin-bottom: 20px; font-style: italic;">
+            <p><i>Loading report data...</i></p>
+        </div>
+
+        <div class="report">
+            <div id="report-content-dynamic">
+                <p><i>Please wait, fetching report details.</i></p>
+            </div>
+        </div>
+
+        <form id="promptForm" style="margin-top: 30px;">
+            <div class="form-group">
+                <label for="regenerate-text">Optional: Add a Prompt for Summary/Analysis (Not Implemented):</label>
+                <input type="text" id="regenerate-text" name="regenerate-text" placeholder="e.g., summarize action items">
+            </div>
+            <div class="form-group">
+                 <button type="button" id="submitRegeneratePrompt" class="btn">Submit Prompt</button>
+            </div>
+        </form>
+
+        <div style="margin-top: 30px; text-align: center;">
+            <a href="{{ url_for('serve_upload_page') }}" class="btn" style="margin-right: 10px;">Process Another Audio</a>
+            <a href="{{ url_for('serve_index_page') }}" class="btn">Back to Home</a>
+        </div>
+    </div>
+
+    <!-- Hidden span to pass job_id to JavaScript -->
+    <span id="job-id-holder" data-jobid="{{ job_id }}" style="display:none;"></span>
+
+    <script src="{{ url_for('static', filename='js/report_script.js') }}"></script>
+</body>
+</html>
