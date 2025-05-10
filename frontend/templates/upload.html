@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Audio - Convo Report</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Upload Your Audio</h1>
+
+        <!-- Display error message if passed from backend -->
+        {% if error %}
+            <div class="error-message">
+                <p>{{ error }}</p>
+            </div>
+        {% endif %}
+
+        <form action="{{ url_for('submit_audio_for_report') }}" method="POST" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="audioFile">1. Choose an audio file:</label>
+                <input type="file" id="audioFile" name="audioFile" accept="audio/*" required>
+            </div>
+
+            <div class="form-group">
+                <label for="reportType">2. Select Report Type (Future Use):</label>
+                <div class="select-wrapper">
+                    <select id="reportType" name="reportType" required>
+                        <option value="brief">Brief</option>
+                        <option value="detailed">Detailed</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                 <label for="whisperModelSize">3. Choose Processing Model:</label>
+                 <div class="select-wrapper">
+                      <select id="whisperModelSize" name="whisperModelSize">
+                           <option value="tiny">Tiny (Fastest, Lower Accuracy)</option>
+                           <option value="base" selected>Base (Good Balance)</option>
+                           <option value="small">Small (Recommended)</option>
+                           <option value="medium">Medium (Slower, Better Accuracy)</option>
+                           <!-- <option value="large">Large (Slowest, Best Accuracy)</option> -->
+                      </select>
+                 </div>
+            </div>
+
+            <button type="submit" class="btn">Generate Report</button>
+        </form>
+        <a href="{{ url_for('serve_index_page') }}" class="btn" style="background-color: #6c757d; margin-top:25px;">Back to Home</a>
+    </div>
+    <!-- No client-side JS needed for simple form submission and redirect -->
+</body>
+</html>
