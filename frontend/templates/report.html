@@ -3,42 +3,112 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Generated Report - Convo Report</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
-    <!-- Any additional report-specific styles can go in styles.css or here -->
+    <title>ConvoReport - Your Report</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
-<body class="report-view">
-    <div class="container report-page">
-        <h1>Report Results</h1>
-        <div id="report-status-message" style="text-align: center; margin-bottom: 20px; font-style: italic;">
-            <p><i>Loading report data...</i></p>
-        </div>
-
-        <div class="report">
-            <div id="report-content-dynamic">
-                <p><i>Please wait, fetching report details.</i></p>
+<body>
+    <div class="container">
+        <header>
+            <h1>Your Report</h1>
+            <p class="subtitle">AI-generated conversation analysis</p>
+        </header>
+        
+        <div class="report-container">
+            <div id="reportContent">
+                <div class="status generating">
+                    <div class="loading-spinner"></div>
+                    <p>Your report is being generated...</p>
+                </div>
             </div>
         </div>
-
-        <form id="promptForm" style="margin-top: 30px;">
-            <div class="form-group">
-                <label for="regenerate-text">Optional: Add a Prompt for Summary/Analysis (Not Implemented):</label>
-                <input type="text" id="regenerate-text" name="regenerate-text" placeholder="e.g., summarize action items">
-            </div>
-            <div class="form-group">
-                 <button type="button" id="submitRegeneratePrompt" class="btn">Submit Prompt</button>
-            </div>
-        </form>
-
-        <div style="margin-top: 30px; text-align: center;">
-            <a href="{{ url_for('serve_upload_page') }}" class="btn" style="margin-right: 10px;">Process Another Audio</a>
-            <a href="{{ url_for('serve_index_page') }}" class="btn">Back to Home</a>
+        
+        <div class="prompt-container">
+            <label for="customPrompt">Custom Instructions</label>
+            <textarea id="customPrompt" placeholder="Add specific instructions for regenerating the report..."></textarea>
         </div>
+        
+        <div class="center-content">
+            <button class="btn" id="regenerateBtn">Regenerate Report</button>
+            <a href="upload.html" class="btn btn-secondary">New Upload</a>
+        </div>
+        
+        <footer>
+            <p>&copy; 2025 ConvoReport. All rights reserved.</p>
+        </footer>
     </div>
 
-    <!-- Hidden span to pass job_id to JavaScript -->
-    <span id="job-id-holder" data-jobid="{{ job_id }}" style="display:none;"></span>
-
-    <script src="{{ url_for('static', filename='js/report_script.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get file info from localStorage
+            const fileName = localStorage.getItem('fileName') || 'Unknown file';
+            const reportType = localStorage.getItem('reportType') || 'brief';
+            const modelType = localStorage.getItem('modelType') || 'base';
+            
+            // Simulate an API call to generate the report
+            // In a real application, this would be a fetch to your backend
+            simulateAPICall(fileName, reportType, modelType);
+            
+            // Regenerate button handling
+            const regenerateBtn = document.getElementById('regenerateBtn');
+            regenerateBtn.addEventListener('click', function() {
+                const reportContent = document.getElementById('reportContent');
+                const customPrompt = document.getElementById('customPrompt').value;
+                
+                // Display generating status
+                reportContent.innerHTML = `
+                    <div class="status generating">
+                        <div class="loading-spinner"></div>
+                        <p>Regenerating your report...</p>
+                    </div>
+                `;
+                
+                // Simulate API call for regeneration
+                setTimeout(function() {
+                    reportContent.innerHTML = `
+                        <div class="status completed">
+                            <h2>Report Regenerated Successfully</h2>
+                            ${customPrompt ? `<p>Based on your custom instructions: "${customPrompt}"</p>` : ''}
+                        </div>
+                        <div class="report-text">
+                            <h3>File Analysis: ${fileName}</h3>
+                            <p>This is a simulated regenerated report for ${fileName} with ${reportType} analysis. 
+                            The report would contain AI-generated insights based on the conversation 
+                            ${customPrompt ? 'and your custom instructions' : ''}.</p>
+                            <p>In a real implementation, this would be a detailed report with insights, 
+                            transcripts, and analysis from your audio file.</p>
+                        </div>
+                    `;
+                }, 2000);
+            });
+            
+            function simulateAPICall(fileName, reportType, modelType) {
+                // In a real app, this would be a fetch call to your backend API
+                setTimeout(function() {
+                    const reportContent = document.getElementById('reportContent');
+                    reportContent.innerHTML = `
+                        <div class="status completed">
+                            <h2>Report Generated Successfully</h2>
+                        </div>
+                        <div class="report-text">
+                            <h3>File Analysis: ${fileName}</h3>
+                            <p>This is a simulated ${reportType} report generated using the ${modelType} model. 
+                            In a real implementation, this would contain AI-generated insights based on your conversation.</p>
+                            <p>The report would include:</p>
+                            <ul>
+                                <li>Conversation summary</li>
+                                <li>Key points and insights</li>
+                                <li>Speaker identification</li>
+                                ${reportType === 'detailed' ? `
+                                <li>Full transcript with timestamps</li>
+                                <li>Sentiment analysis</li>
+                                <li>Action items identified</li>` : ''}
+                            </ul>
+                            <p>To customize this report, add specific instructions in the custom instructions box below and click "Regenerate Report".</p>
+                        </div>
+                    `;
+                }, 3000);
+            }
+        });
+    </script>
 </body>
 </html>

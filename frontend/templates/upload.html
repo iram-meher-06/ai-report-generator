@@ -3,53 +3,171 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Upload Audio - Convo Report</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <title>ConvoReport - Upload</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
-        <h1>Upload Your Audio</h1>
-
-        <!-- Display error message if passed from backend -->
-        {% if error %}
-            <div class="error-message">
-                <p>{{ error }}</p>
-            </div>
-        {% endif %}
-
-        <form action="{{ url_for('process_audio_endpoint') }}" method="POST" enctype="multipart/form-data">
+        <header>
+            <h1>Upload Conversation</h1>
+            <p class="subtitle">Select your audio file and preferences</p>
+        </header>
+        
+        <form id="uploadForm">
             <div class="form-group">
-                <label for="audioFile">1. Choose an audio file:</label>
-                <input type="file" id="audioFile" name="audioFile" accept="audio/*" required>
-            </div>
-
-            <div class="form-group">
-                <label for="reportType">2. Select Report Type (Future Use):</label>
-                <div class="select-wrapper">
-                    <select id="reportType" name="reportType" required>
-                        <option value="brief">Brief</option>
-                        <option value="detailed">Detailed</option>
-                    </select>
+                <label for="audioFile">Upload Audio File</label>
+                <div class="file-upload" id="dropArea">
+                    <input type="file" id="audioFile" accept="audio/*">
+                    <i>🎤</i>
+                    <p id="fileStatus">Click or drag audio file here</p>
                 </div>
             </div>
-
+            
             <div class="form-group">
-                 <label for="whisperModelSize">3. Choose Processing Model:</label>
-                 <div class="select-wrapper">
-                      <select id="whisperModelSize" name="whisperModelSize">
-                           <option value="tiny">Tiny (Fastest, Lower Accuracy)</option>
-                           <option value="base" selected>Base (Good Balance)</option>
-                           <option value="small">Small (Recommended)</option>
-                           <option value="medium">Medium (Slower, Better Accuracy)</option>
-                           <!-- <option value="large">Large (Slowest, Best Accuracy)</option> -->
-                      </select>
-                 </div>
+                <label>Report Type</label>
+                <div class="option-group">
+                    <div class="option-box selected" data-value="brief">
+                        <h3>Brief</h3>
+                        <p>Concise summary with key points</p>
+                    </div>
+                    <div class="option-box" data-value="detailed">
+                        <h3>Detailed</h3>
+                        <p>Comprehensive analysis and full transcript</p>
+                    </div>
+                </div>
+                <input type="hidden" id="reportType" value="brief">
             </div>
-
-            <button type="submit" class="btn">Generate Report</button>
+            
+            <div class="form-group">
+                <label for="modelType">Model Size</label>
+                <select id="modelType">
+                    <option value="tiny">Tiny (Fastest)</option>
+                    <option value="small">Small (Fast)</option>
+                    <option value="base" selected>Base (Recommended)</option>
+                    <option value="medium">Medium (Most Accurate)</option>
+                </select>
+            </div>
+            
+            <div class="center-content">
+                <button type="submit" class="btn" id="generateBtn">Generate Report</button>
+                <a href="entry.html" class="btn btn-secondary">Back</a>
+            </div>
         </form>
-        <a href="{{ url_for('serve_index_page') }}" class="btn" style="background-color: #6c757d; margin-top:25px;">Back to Home</a>
+        
+        <footer>
+            <p>&copy; 2025 ConvoReport. All rights reserved.</p>
+        </footer>
     </div>
-    <!-- No client-side JS needed for simple form submission and redirect -->
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Option box selection
+            const optionBoxes = document.querySelectorAll('.option-box');
+            optionBoxes.forEach(box => {
+                box.addEventListener('click', function() {
+                    optionBoxes.forEach(b => b.classList.remove('selected'));
+                    this.classList.add('selected');
+                    document.getElementById('reportType').value = this.dataset.value;
+                });
+            });
+            
+            // File upload handling
+            const fileInput = document.getElementById('audioFile');
+            const fileStatus = document.getElementById('fileStatus');
+            
+            fileInput.addEventListener('change', function() {
+                const file = this.files[0];
+                if (file) {
+                    fileStatus.textContent = `Selected: ${file.name}`;
+                } else {
+                    fileStatus.textContent = 'Click or drag audio file here';
+                }
+            });
+            
+            // Drag and drop handling
+            const dropArea = document.getElementById('dropArea');
+            
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropArea.addEventListener(eventName, preventDefaults, false);
+            });
+            
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropArea.addEventListener(eventName, highlight, false);
+            });
+            
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropArea.addEventListener(eventName, unhighlight, false);
+            });
+            
+            function highlight() {
+                dropArea.style.borderColor = 'var(--secondary-color)';
+                dropArea.style.backgroundColor = 'rgba(230, 247, 255, 0.8)';
+            }
+            
+            function unhighlight() {
+                dropArea.style.borderColor = 'var(--border-color)';
+                dropArea.style.backgroundColor = 'var(--primary-color)';
+            }
+            
+            dropArea.addEventListener('drop', handleDrop, false);
+            
+            function handleDrop(e) {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                
+                if (files.length > 0) {
+                    fileInput.files = files;
+                    fileStatus.textContent = `Selected: ${files[0].name}`;
+                }
+            }
+            
+            // Click on drop area to trigger file input
+            dropArea.addEventListener('click', function() {
+                fileInput.click();
+            });
+            
+            // Store model type in localStorage
+            const modelType = document.getElementById('modelType');
+            modelType.addEventListener('change', function() {
+                localStorage.setItem('modelType', this.value);
+            });
+            
+            // Set initial model value
+            localStorage.setItem('modelType', modelType.value);
+            
+            // Form submission
+            const uploadForm = document.getElementById('uploadForm');
+            uploadForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const audioFile = fileInput.files[0];
+                const reportType = document.getElementById('reportType').value;
+                const modelType = document.getElementById('modelType').value;
+                
+                if (!audioFile) {
+                    alert('Please upload an audio file first.');
+                    return;
+                }
+                
+                // Create FormData for API submission
+                const formData = new FormData();
+                formData.append('audioFile', audioFile);
+                formData.append('reportType', reportType);
+                formData.append('modelType', modelType);
+                
+                // Store values for the report page
+                localStorage.setItem('fileName', audioFile.name);
+                localStorage.setItem('reportType', reportType);
+                
+                // Redirect to report page
+                window.location.href = 'report.html';
+            });
+        });
+    </script>
 </body>
 </html>
