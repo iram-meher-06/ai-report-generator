@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ConvoReport - Your Report</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}"></head>
 </head>
 <body>
     <div class="container">
@@ -29,7 +29,7 @@
         
         <div class="center-content">
             <button class="btn" id="regenerateBtn">Regenerate Report</button>
-            <a href="upload.html" class="btn btn-secondary">New Upload</a>
+            <a href="/upload" class="btn btn-secondary">New Upload</a>
         </div>
         
         <footer>
@@ -37,78 +37,6 @@
         </footer>
     </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Get file info from localStorage
-            const fileName = localStorage.getItem('fileName') || 'Unknown file';
-            const reportType = localStorage.getItem('reportType') || 'brief';
-            const modelType = localStorage.getItem('modelType') || 'base';
-            
-            // Simulate an API call to generate the report
-            // In a real application, this would be a fetch to your backend
-            simulateAPICall(fileName, reportType, modelType);
-            
-            // Regenerate button handling
-            const regenerateBtn = document.getElementById('regenerateBtn');
-            regenerateBtn.addEventListener('click', function() {
-                const reportContent = document.getElementById('reportContent');
-                const customPrompt = document.getElementById('customPrompt').value;
-                
-                // Display generating status
-                reportContent.innerHTML = `
-                    <div class="status generating">
-                        <div class="loading-spinner"></div>
-                        <p>Regenerating your report...</p>
-                    </div>
-                `;
-                
-                // Simulate API call for regeneration
-                setTimeout(function() {
-                    reportContent.innerHTML = `
-                        <div class="status completed">
-                            <h2>Report Regenerated Successfully</h2>
-                            ${customPrompt ? `<p>Based on your custom instructions: "${customPrompt}"</p>` : ''}
-                        </div>
-                        <div class="report-text">
-                            <h3>File Analysis: ${fileName}</h3>
-                            <p>This is a simulated regenerated report for ${fileName} with ${reportType} analysis. 
-                            The report would contain AI-generated insights based on the conversation 
-                            ${customPrompt ? 'and your custom instructions' : ''}.</p>
-                            <p>In a real implementation, this would be a detailed report with insights, 
-                            transcripts, and analysis from your audio file.</p>
-                        </div>
-                    `;
-                }, 2000);
-            });
-            
-            function simulateAPICall(fileName, reportType, modelType) {
-                // In a real app, this would be a fetch call to your backend API
-                setTimeout(function() {
-                    const reportContent = document.getElementById('reportContent');
-                    reportContent.innerHTML = `
-                        <div class="status completed">
-                            <h2>Report Generated Successfully</h2>
-                        </div>
-                        <div class="report-text">
-                            <h3>File Analysis: ${fileName}</h3>
-                            <p>This is a simulated ${reportType} report generated using the ${modelType} model. 
-                            In a real implementation, this would contain AI-generated insights based on your conversation.</p>
-                            <p>The report would include:</p>
-                            <ul>
-                                <li>Conversation summary</li>
-                                <li>Key points and insights</li>
-                                <li>Speaker identification</li>
-                                ${reportType === 'detailed' ? `
-                                <li>Full transcript with timestamps</li>
-                                <li>Sentiment analysis</li>
-                                <li>Action items identified</li>` : ''}
-                            </ul>
-                            <p>To customize this report, add specific instructions in the custom instructions box below and click "Regenerate Report".</p>
-                        </div>
-                    `;
-                }, 3000);
-            }
-        });
-    </script>
+    <script src="{{ url_for('static', filename='js/report_script.js') }}"></script>
 </body>
 </html>

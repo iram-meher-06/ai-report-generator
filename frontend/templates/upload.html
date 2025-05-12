@@ -4,8 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ConvoReport - Upload</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 <body>
     <div class="container">
         <header>
@@ -13,11 +12,11 @@
             <p class="subtitle">Select your audio file and preferences</p>
         </header>
         
-        <form id="uploadForm">
+        <form id="uploadForm" action="/process_audio" method="POST" enctype="multipart/form-data">
             <div class="form-group">
                 <label for="audioFile">Upload Audio File</label>
                 <div class="file-upload" id="dropArea">
-                    <input type="file" id="audioFile" accept="audio/*">
+                    <input type="file" id="audioFile" accept="audio/*" name="audioFile">
                     <i>🎤</i>
                     <p id="fileStatus">Click or drag audio file here</p>
                 </div>
@@ -35,12 +34,12 @@
                         <p>Comprehensive analysis and full transcript</p>
                     </div>
                 </div>
-                <input type="hidden" id="reportType" value="brief">
+                <input type="hidden" id="reportType" name="reportType" value="brief">
             </div>
             
             <div class="form-group">
                 <label for="modelType">Model Size</label>
-                <select id="modelType">
+                <select id="modelType" name="whisperModelSize">
                     <option value="tiny">Tiny (Fastest)</option>
                     <option value="small">Small (Fast)</option>
                     <option value="base" selected>Base (Recommended)</option>
@@ -50,7 +49,7 @@
             
             <div class="center-content">
                 <button type="submit" class="btn" id="generateBtn">Generate Report</button>
-                <a href="entry.html" class="btn btn-secondary">Back</a>
+                <a href="/" class="btn btn-secondary">Back</a>
             </div>
         </form>
         
@@ -154,18 +153,12 @@
                     return;
                 }
                 
-                // Create FormData for API submission
-                const formData = new FormData();
-                formData.append('audioFile', audioFile);
-                formData.append('reportType', reportType);
-                formData.append('modelType', modelType);
-                
                 // Store values for the report page
                 localStorage.setItem('fileName', audioFile.name);
                 localStorage.setItem('reportType', reportType);
                 
-                // Redirect to report page
-                window.location.href = 'report.html';
+                // Submit the form (let the backend handle redirect)
+                uploadForm.submit();
             });
         });
     </script>

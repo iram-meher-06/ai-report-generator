@@ -24,5 +24,20 @@ CREATE TABLE public.words (
     embedding vector(128) NULL,
     created_at timestamp with time zone NOT NULL DEFAULT now()
 );
+-- Add this to your schema.sql or run in Supabase SQL Editor
+create table transcripts_log (
+  id uuid default uuid_generate_v4() primary key,
+  audio_filename text,
+  raw_transcript text,
+  dialogue_json jsonb,
+  processed_text text,
+  entities_json jsonb,
+  keywords_json jsonb,
+  classified_sentences_json jsonb,
+  status text,
+  whisper_model_size text,
+  report_type_requested text,
+  created_at timestamp with time zone default now()
+);
 ALTER TABLE public.words ADD CONSTRAINT words_speaker_id_fkey FOREIGN KEY (speaker_id) REFERENCES public.speakers(id) ON UPDATE RESTRICT ON DELETE RESTRICT;
 ALTER TABLE public.words ADD CONSTRAINT words_utterance_id_fkey FOREIGN KEY (utterance_id) REFERENCES public.utterances(id) ON UPDATE RESTRICT ON DELETE RESTRICT;

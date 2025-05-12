@@ -11,6 +11,9 @@ import secrets
 import numpy as np # Keep if audio_processor or its deps still use it globally
 from supabase import create_client, Client # <<< Import Supabase >>>
 
+from ml_pipeline.ml_utils import extract_entities, extract_keywords
+from ml_pipeline.report_classifier import classify_sentences, generate_report_text
+
 # --- Path Adjustments (Keep as is) ---
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root_from_backend = os.path.abspath(os.path.join(current_dir, '..'))
@@ -29,16 +32,16 @@ except ImportError as e:
     print(f"### ERROR importing ML: {e} ###"); ML_FUNCTION_LOADED = False
     def process_audio_and_return_dialogue(a,w): return {"error": "Import failed - DUMMY"}
 except Exception as e_gen:
-     print(f"!!! General Error during ML import: {e_gen}"); ML_FUNCTION_LOADED = False
-     def process_audio_and_return_dialogue(a,w): return {"error": "General import error - DUMMY"}
+    print(f"!!! General Error during ML import: {e_gen}"); ML_FUNCTION_LOADED = False
+    def process_audio_and_return_dialogue(a,w): return {"error": "General import error - DUMMY"}
 
 # --- Load .env ---
 from dotenv import load_dotenv
 dotenv_path = os.path.join(project_root_from_backend, '.env')
 if os.path.exists(dotenv_path):
-     print(f"Flask App: Loading .env from: {dotenv_path}"); load_dotenv(dotenv_path=dotenv_path)
+    print(f"Flask App: Loading .env from: {dotenv_path}"); load_dotenv(dotenv_path=dotenv_path)
 else:
-     print(f"Flask App Warning: .env file not found at {dotenv_path}")
+    print(f"Flask App Warning: .env file not found at {dotenv_path}")
 
 # --- Initialize Supabase Client ---
 supabase_url = os.getenv("SUPABASE_URL")
@@ -63,10 +66,10 @@ else:
         print(f"ERROR: Failed to initialize Supabase client: {e_sb}")
         print(f"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 
-app = Flask(__name__,
-            template_folder=os.path.join(project_root_from_backend, 'frontend', 'templates'),
-            static_folder=os.path.join(project_root_from_backend, 'frontend', 'static')
-            )
+# After importing Flask
+app = Flask(__name__, 
+    template_folder='../frontend/templates',
+    static_folder='../frontend/static')
 CORS(app)
 
 # --- Configuration ---
@@ -76,16 +79,17 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # --- REMOVE In-Memory Storage Dictionaries ---
 # analysis_results = {} # No longer used
-# job_status = {}       # No longer used
+# job_status = {}      # No longer used
 
+# --- HTML Serving Endpoints (Keep as is) ---
 # --- HTML Serving Endpoints (Keep as is) ---
 @app.route('/', methods=['GET'])
 def serve_index_page(): return render_template('index.html')
 
 @app.route('/upload', methods=['GET'])
-def serve_upload_page(): return render_template('upload.html')
+def upload(): return render_template('upload.html')  # Changed from serve_upload_page to upload
 
-@app.route('/report/<string:job_id>', methods=['GET']) # job_id here will be Supabase primary key
+@app.route('/report/<string:job_id>', methods=['GET'])
 def show_report_page(job_id):
     print(f"Serving report page for job_id: {job_id}")
     return render_template('report.html', job_id=job_id)
@@ -105,7 +109,7 @@ def show_report_page(job_id):
 def process_audio_endpoint():
     print("--------------------------------------")
     print("Received request at /process_audio")
-    
+
     # <<< --- START OF ADDED DEBUG STATEMENTS --- >>>
     print(f"DEBUG Endpoint: Value of ML_FUNCTION_LOADED at entry: {ML_FUNCTION_LOADED}")
     print(f"DEBUG Endpoint: Value of SUPABASE_INITIALIZED at entry: {SUPABASE_INITIALIZED}")
@@ -128,19 +132,19 @@ def process_audio_endpoint():
     if file.filename == '':
         print("Error: No file selected.")
         return jsonify({"error": "No file selected"}), 400
-    
+
     report_type_requested = request.form.get('reportType', 'brief')
     whisper_model_size = request.form.get('whisperModelSize', 'small')
     print(f"Received file: {file.filename}, Report Type: {report_type_requested}, Whisper Model: {whisper_model_size}")
-    
-    temp_audio_path = None 
-    job_id_from_supabase = None 
+
+    temp_audio_path = None
+    job_id_from_supabase = None
 
     if file:
         filename = werkzeug.utils.secure_filename(file.filename)
         if not filename:
             return jsonify({"error": "Invalid filename"}), 400
-        
+
         temp_filename = f"{secrets.token_hex(8)}_{filename}"
         temp_audio_path = os.path.join(app.config['UPLOAD_FOLDER'], temp_filename)
 
@@ -163,29 +167,55 @@ def process_audio_endpoint():
             dialogue_data = result_data.get("dialogue", [])
             processed_text = result_data.get("processed_text", "")
 
-            print("Storing initial data in Supabase table 'transcripts_log'...")
+            # ---- START NLP INTEGRATION ----
+            text_for_nlp = processed_text if processed_text else raw_transcript
+            if not text_for_nlp and dialogue_data:
+                text_for_nlp = " ".join([item['text'] for item in dialogue_data])
+
+            extracted_entities = []
+            extracted_keywords = []
+            classified_sents = {}
+
+            if text_for_nlp:
+                print("Running NLP analysis...")
+                try:
+                    extracted_entities = extract_entities(text_for_nlp)
+                    extracted_keywords = extract_keywords(text_for_nlp)
+                    classified_sents = classify_sentences(text_for_nlp)
+                    print("NLP analysis completed.")
+                except Exception as e_nlp:
+                    print(f"Error during NLP processing: {e_nlp}")
+                    # For simplicity, we'll store empty NLP results if it fails
+            else:
+                print("No text available for NLP analysis.")
+            # ---- END NLP INTEGRATION ----
+
+            print("Storing data in Supabase table 'transcripts_log'...")
             data_to_insert = {
                 'audio_filename': filename,
                 'raw_transcript': raw_transcript,
                 'dialogue_json': dialogue_data,
                 'processed_text': processed_text,
-                'status': 'completed_preprocessing',
+                'entities_json': extracted_entities,
+                'keywords_json': extracted_keywords,
+                'classified_sentences_json': classified_sents,
+                'status': 'completed_preprocessing', # You might want to update this status later
                 'whisper_model_size': whisper_model_size,
                 'report_type_requested': report_type_requested
             }
-            
+
             # Ensure supabase client is used only if initialized
             if not supabase: # supabase is the global client instance
-                 print("ERROR: Supabase client is None inside endpoint. Cannot proceed.")
-                 # This should ideally be caught by SUPABASE_INITIALIZED at the top,
-                 # but as a safeguard within the try block:
-                 raise ConnectionError("Supabase client not available for database operation.")
+                print("ERROR: Supabase client is None inside endpoint. Cannot proceed.")
+                # This should ideally be caught by SUPABASE_INITIALIZED at the top,
+                # but as a safeguard within the try block:
+                raise ConnectionError("Supabase client not available for database operation.")
 
             response = supabase.table('transcripts_log').insert(data_to_insert).execute()
             print(f"Supabase insert response: {response}")
 
             if response.data and len(response.data) > 0:
-                job_id_from_supabase = response.data[0]['id'] 
+                job_id_from_supabase = response.data[0]['id']
                 print(f"Data stored in Supabase with ID (job_id): {job_id_from_supabase}")
                 return redirect(url_for('show_report_page', job_id=str(job_id_from_supabase))) # Ensure job_id is string for URL
             else:
@@ -194,17 +224,17 @@ def process_audio_endpoint():
                 return render_template('upload.html', error=f"Failed to store transcript: {error_detail}")
 
         except Exception as e:
-             print(f"General error during processing or Supabase interaction: {e}")
-             import traceback
-             traceback.print_exc() # Print full traceback for detailed debugging
-             return render_template('upload.html', error=f"Server error: {str(e)}")
+            print(f"General error during processing or Supabase interaction: {e}")
+            import traceback
+            traceback.print_exc() # Print full traceback for detailed debugging
+            return render_template('upload.html', error=f"Server error: {str(e)}")
         finally:
             if temp_audio_path and os.path.exists(temp_audio_path):
-                 try:
-                     os.remove(temp_audio_path)
-                     print(f"Removed temporary audio file: {temp_audio_path}")
-                 except Exception as e_del:
-                     print(f"Warning: Failed to delete temp audio {temp_audio_path}: {e_del}")
+                try:
+                    os.remove(temp_audio_path)
+                    print(f"Removed temporary audio file: {temp_audio_path}")
+                except Exception as e_del:
+                    print(f"Warning: Failed to delete temp audio {temp_audio_path}: {e_del}")
     else:
         return jsonify({"error": "Invalid file provided"}), 400
 
@@ -221,7 +251,7 @@ def get_report_data_api(job_id):
         # If your 'id' column in Supabase is integer, convert job_id: int(job_id)
         # If it's UUID text, just use job_id as string.
         # For now, assuming job_id (Firebase push key like) matches text or you use a text PK
-        
+
         # Let's assume the primary key 'id' for transcripts_log is what we are using as job_id
         # If it's an integer from a sequence, you might need to cast job_id
         # For now, assuming it's a text/uuid type that matches the generated job_id string
@@ -242,8 +272,8 @@ def get_report_data_api(job_id):
             print(f"Job ID {job_id} not found in Supabase for get_report_data.")
             abort(404, description=f"Analysis result for job ID {job_id} not found.")
     except Exception as e:
-         print(f"Error fetching result from Supabase for job {job_id}: {e}")
-         abort(500, description="Error fetching result from database.")
+        print(f"Error fetching result from Supabase for job {job_id}: {e}")
+        abort(500, description="Error fetching result from database.")
 
 
 @app.route('/get_status/<string:job_id>', methods=['GET'])
@@ -257,9 +287,73 @@ def get_job_status(job_id):
         else:
             return jsonify({"job_id": job_id, "status": "not_found"}) # Or "unknown" if record exists but no status
     except Exception as e:
-         print(f"Error fetching status from Supabase for job {job_id}: {e}")
-         return jsonify({"job_id": job_id, "status": "error_fetching"}), 500
+        print(f"Error fetching status from Supabase for job {job_id}: {e}")
+        return jsonify({"job_id": job_id, "status": "error_fetching"}), 500
 
+@app.route('/api/report/<string:job_id>', methods=['GET'])
+def get_report(job_id):
+    try:
+        # Fetch the report data from Supabase
+        response = supabase.table('transcripts_log').select('*').eq('id', job_id).execute()
+        if not response.data:
+            return jsonify({'error': 'Report not found'}), 404
+        return jsonify(response.data[0])
+    except Exception as e:
+        print(f"Error fetching report: {e}")
+        return jsonify({'error': 'Failed to fetch report'}), 500
+
+@app.route('/api/regenerate/<string:job_id>', methods=['POST'])
+def regenerate_report(job_id):
+    try:
+        custom_prompt = request.json.get('custom_prompt', '')
+        # Fetch the original data
+        response = supabase.table('transcripts_log').select('*').eq('id', job_id).execute()
+        if not response.data:
+            return jsonify({'error': 'Original report not found'}), 404
+            
+        original_data = response.data[0]
+        text_for_analysis = original_data.get('processed_text', '') or original_data.get('raw_transcript', '')
+        
+        # Create sections based on custom prompt
+        sections = {
+            "Summary": [],
+            "Action Items": [],
+            "Key Decisions": [],
+            custom_prompt: [] if custom_prompt else None
+        }
+        
+        # Basic classification based on keywords and custom prompt
+        sentences = text_for_analysis.split('. ')
+        for sentence in sentences:
+            sentence = sentence.strip()
+            if not sentence:
+                continue
+                
+            # Check for custom prompt match first
+            if custom_prompt and any(keyword in sentence.lower() for keyword in custom_prompt.lower().split()):
+                sections[custom_prompt].append(sentence)
+            # Then check other categories
+            elif any(keyword in sentence.lower() for keyword in ["in summary", "to conclude", "overall"]):
+                sections["Summary"].append(sentence)
+            elif any(keyword in sentence.lower() for keyword in ["we should", "need to", "must", "action required", "to do"]):
+                sections["Action Items"].append(sentence)
+            elif any(keyword in sentence.lower() for keyword in ["decided to", "decision is", "agreed on", "the plan is"]):
+                sections["Key Decisions"].append(sentence)
+            else:
+                sections["Summary"].append(sentence)
+        
+        # Remove empty sections
+        sections = {k: v for k, v in sections.items() if v is not None and len(v) > 0}
+        
+        # Update the report in Supabase
+        supabase.table('transcripts_log').update({
+            'classified_sentences_json': sections
+        }).eq('id', job_id).execute()
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        print(f"Error regenerating report: {e}")
+        return jsonify({'error': 'Failed to regenerate report'}), 500
 # --- Run the App ---
 if __name__ == '__main__':
     print("Starting Flask server...")
